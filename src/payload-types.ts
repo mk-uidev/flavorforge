@@ -64,11 +64,17 @@ export type SupportedTimezones =
 export interface Config {
   auth: {
     users: UserAuthOperations;
+    customers: CustomerAuthOperations;
   };
   blocks: {};
   collections: {
     users: User;
+    customers: Customer;
     media: Media;
+    categories: Category;
+    products: Product;
+    orders: Order;
+    'order-status-history': OrderStatusHistory;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -76,7 +82,12 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
+    customers: CustomersSelect<false> | CustomersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    products: ProductsSelect<false> | ProductsSelect<true>;
+    orders: OrdersSelect<false> | OrdersSelect<true>;
+    'order-status-history': OrderStatusHistorySelect<false> | OrderStatusHistorySelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -84,12 +95,20 @@ export interface Config {
   db: {
     defaultIDType: string;
   };
-  globals: {};
-  globalsSelect: {};
-  locale: null;
-  user: User & {
-    collection: 'users';
+  globals: {
+    'store-config': StoreConfig;
   };
+  globalsSelect: {
+    'store-config': StoreConfigSelect<false> | StoreConfigSelect<true>;
+  };
+  locale: null;
+  user:
+    | (User & {
+        collection: 'users';
+      })
+    | (Customer & {
+        collection: 'customers';
+      });
   jobs: {
     tasks: unknown;
     workflows: unknown;
@@ -113,12 +132,89 @@ export interface UserAuthOperations {
     password: string;
   };
 }
+export interface CustomerAuthOperations {
+  forgotPassword: {
+    email: string;
+    password: string;
+  };
+  login: {
+    email: string;
+    password: string;
+  };
+  registerFirstUser: {
+    email: string;
+    password: string;
+  };
+  unlock: {
+    email: string;
+    password: string;
+  };
+}
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
   id: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  /**
+   * Select user roles. Admins have full access to the system.
+   */
+  roles?: ('admin' | 'user' | 'customer')[] | null;
+  isActive?: boolean | null;
+  /**
+   * Last login timestamp
+   */
+  lastLogin?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customers".
+ */
+export interface Customer {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone?: string | null;
+  dateOfBirth?: string | null;
+  /**
+   * Optional: Save your default delivery address for faster checkout
+   */
+  defaultAddress?: {
+    street?: string | null;
+    area?: string | null;
+    city?: string | null;
+    postalCode?: string | null;
+  };
+  dietaryPreferences?: ('vegetarian' | 'vegan' | 'halal' | 'no-spicy' | 'low-sodium' | 'gluten-free')[] | null;
+  /**
+   * Please list any food allergies or restrictions
+   */
+  allergens?: string | null;
+  preferredSpiceLevel?: ('mild' | 'medium' | 'hot' | 'very-hot') | null;
+  isActive?: boolean | null;
+  totalOrders?: number | null;
+  totalSpent?: number | null;
+  lastOrderDate?: string | null;
+  loyaltyPoints?: number | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -143,7 +239,18 @@ export interface User {
  */
 export interface Media {
   id: string;
-  alt: string;
+  /**
+   * Alternative text for accessibility and SEO
+   */
+  alt?: string | null;
+  /**
+   * Optional caption for the image
+   */
+  caption?: string | null;
+  /**
+   * Categorize media for easier organization
+   */
+  category?: ('category-icons' | 'product-images' | 'general') | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -155,6 +262,220 @@ export interface Media {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    tablet?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    icon?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    'icon-large'?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories".
+ */
+export interface Category {
+  id: string;
+  /**
+   * Display name for the category (e.g., "Rice Dishes")
+   */
+  name: string;
+  /**
+   * URL-friendly version (e.g., "rice-dishes")
+   */
+  slug: string;
+  /**
+   * Brief description of what this category includes
+   */
+  description?: string | null;
+  /**
+   * Upload an icon for this category (recommended: 64x64px, transparent background)
+   */
+  icon?: (string | null) | Media;
+  /**
+   * Optional fallback image URL if no icon is uploaded
+   */
+  imageUrl?: string | null;
+  /**
+   * Lower numbers appear first (0 = first)
+   */
+  sortOrder?: number | null;
+  /**
+   * Only active categories are shown to customers
+   */
+  isActive?: boolean | null;
+  /**
+   * Number of items in this category (auto-calculated)
+   */
+  itemCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products".
+ */
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  /**
+   * Select the category this product belongs to
+   */
+  category: string | Category;
+  /**
+   * Price in Omani Riyal
+   */
+  price: number;
+  /**
+   * Minimum number of units customers must order (e.g., 2 for family portions)
+   */
+  minOrderQuantity?: number | null;
+  /**
+   * Check to enable special pricing for this product
+   */
+  isOnOffer?: boolean | null;
+  /**
+   * Choose how the discount should be calculated
+   */
+  discountType?: ('percentage' | 'fixed') | null;
+  /**
+   * For percentage: enter number (e.g., 20 for 20% off). For fixed: enter amount in OMR
+   */
+  discountValue?: number | null;
+  /**
+   * When the offer becomes active (optional - leave empty for immediate start)
+   */
+  offerStartDate?: string | null;
+  /**
+   * When the offer expires (optional - leave empty for no expiration)
+   */
+  offerEndDate?: string | null;
+  preparationTime: number;
+  isAvailable?: boolean | null;
+  isVegetarian?: boolean | null;
+  isSpicy?: ('mild' | 'medium' | 'hot' | 'very-hot') | null;
+  ingredients?: string | null;
+  /**
+   * Common allergens (nuts, dairy, gluten, etc.)
+   */
+  allergens?: string | null;
+  /**
+   * Upload a product image from your media library (recommended: 768x1024px)
+   */
+  image?: (string | null) | Media;
+  /**
+   * Optional fallback image URL if no image is uploaded above
+   */
+  imageUrl?: string | null;
+  servingSize?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders".
+ */
+export interface Order {
+  id: string;
+  orderNumber: string;
+  /**
+   * Select the customer for this order
+   */
+  customer: string | Customer;
+  /**
+   * Auto-generated customer name for display
+   */
+  customerName?: string | null;
+  items: {
+    foodItem: string | Product;
+    quantity: number;
+    price: number;
+    subtotal: number;
+    id?: string | null;
+  }[];
+  totalAmount: number;
+  status: 'pending' | 'confirmed' | 'preparing' | 'ready-for-pickup' | 'out-for-delivery' | 'completed' | 'cancelled';
+  /**
+   * Whether this is a delivery or pickup order
+   */
+  serviceType: 'delivery' | 'pickup';
+  /**
+   * Must be at least 24 hours from order placement
+   */
+  bookingDate: string;
+  customerNotes?: string | null;
+  adminNotes?: string | null;
+  /**
+   * Required for delivery orders only
+   */
+  deliveryAddress?: {
+    street?: string | null;
+    area?: string | null;
+    city?: string | null;
+    postalCode?: string | null;
+    phone?: string | null;
+  };
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
+  /**
+   * Estimated time for delivery or pickup completion
+   */
+  estimatedDeliveryTime?: string | null;
+  /**
+   * Actual time when order was delivered or picked up
+   */
+  actualDeliveryTime?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "order-status-history".
+ */
+export interface OrderStatusHistory {
+  id: string;
+  order: string | Order;
+  status: 'pending' | 'confirmed' | 'preparing' | 'out-for-delivery' | 'completed' | 'cancelled';
+  changedBy?: (string | null) | User;
+  notes?: string | null;
+  timestamp: string;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -168,14 +489,39 @@ export interface PayloadLockedDocument {
         value: string | User;
       } | null)
     | ({
+        relationTo: 'customers';
+        value: string | Customer;
+      } | null)
+    | ({
         relationTo: 'media';
         value: string | Media;
+      } | null)
+    | ({
+        relationTo: 'categories';
+        value: string | Category;
+      } | null)
+    | ({
+        relationTo: 'products';
+        value: string | Product;
+      } | null)
+    | ({
+        relationTo: 'orders';
+        value: string | Order;
+      } | null)
+    | ({
+        relationTo: 'order-status-history';
+        value: string | OrderStatusHistory;
       } | null);
   globalSlug?: string | null;
-  user: {
-    relationTo: 'users';
-    value: string | User;
-  };
+  user:
+    | {
+        relationTo: 'users';
+        value: string | User;
+      }
+    | {
+        relationTo: 'customers';
+        value: string | Customer;
+      };
   updatedAt: string;
   createdAt: string;
 }
@@ -185,10 +531,15 @@ export interface PayloadLockedDocument {
  */
 export interface PayloadPreference {
   id: string;
-  user: {
-    relationTo: 'users';
-    value: string | User;
-  };
+  user:
+    | {
+        relationTo: 'users';
+        value: string | User;
+      }
+    | {
+        relationTo: 'customers';
+        value: string | Customer;
+      };
   key?: string | null;
   value?:
     | {
@@ -218,6 +569,53 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  firstName?: T;
+  lastName?: T;
+  roles?: T;
+  isActive?: T;
+  lastLogin?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customers_select".
+ */
+export interface CustomersSelect<T extends boolean = true> {
+  firstName?: T;
+  lastName?: T;
+  phone?: T;
+  dateOfBirth?: T;
+  defaultAddress?:
+    | T
+    | {
+        street?: T;
+        area?: T;
+        city?: T;
+        postalCode?: T;
+      };
+  dietaryPreferences?: T;
+  allergens?: T;
+  preferredSpiceLevel?: T;
+  isActive?: T;
+  totalOrders?: T;
+  totalSpent?: T;
+  lastOrderDate?: T;
+  loyaltyPoints?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -241,6 +639,8 @@ export interface UsersSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  caption?: T;
+  category?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -252,6 +652,154 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+  sizes?:
+    | T
+    | {
+        thumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        card?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        tablet?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        icon?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        'icon-large'?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories_select".
+ */
+export interface CategoriesSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  description?: T;
+  icon?: T;
+  imageUrl?: T;
+  sortOrder?: T;
+  isActive?: T;
+  itemCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products_select".
+ */
+export interface ProductsSelect<T extends boolean = true> {
+  name?: T;
+  description?: T;
+  category?: T;
+  price?: T;
+  minOrderQuantity?: T;
+  isOnOffer?: T;
+  discountType?: T;
+  discountValue?: T;
+  offerStartDate?: T;
+  offerEndDate?: T;
+  preparationTime?: T;
+  isAvailable?: T;
+  isVegetarian?: T;
+  isSpicy?: T;
+  ingredients?: T;
+  allergens?: T;
+  image?: T;
+  imageUrl?: T;
+  servingSize?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders_select".
+ */
+export interface OrdersSelect<T extends boolean = true> {
+  orderNumber?: T;
+  customer?: T;
+  customerName?: T;
+  items?:
+    | T
+    | {
+        foodItem?: T;
+        quantity?: T;
+        price?: T;
+        subtotal?: T;
+        id?: T;
+      };
+  totalAmount?: T;
+  status?: T;
+  serviceType?: T;
+  bookingDate?: T;
+  customerNotes?: T;
+  adminNotes?: T;
+  deliveryAddress?:
+    | T
+    | {
+        street?: T;
+        area?: T;
+        city?: T;
+        postalCode?: T;
+        phone?: T;
+      };
+  paymentStatus?: T;
+  estimatedDeliveryTime?: T;
+  actualDeliveryTime?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "order-status-history_select".
+ */
+export interface OrderStatusHistorySelect<T extends boolean = true> {
+  order?: T;
+  status?: T;
+  changedBy?: T;
+  notes?: T;
+  timestamp?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -284,6 +832,173 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * Configure your store settings including currency and display options
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "store-config".
+ */
+export interface StoreConfig {
+  id: string;
+  /**
+   * The name of your store
+   */
+  storeName: string;
+  /**
+   * Select the currency for your store. This will affect how prices are displayed.
+   */
+  currency: 'USD' | 'EUR' | 'GBP' | 'OMR' | 'AED' | 'SAR' | 'INR' | 'CAD' | 'AUD' | 'JPY' | 'CNY';
+  /**
+   * The symbol that will be displayed with prices (e.g., $, €, £, ر.ع.)
+   */
+  currencySymbol: string;
+  /**
+   * Choose where to display the currency symbol relative to the price
+   */
+  currencyPosition: 'before' | 'after';
+  /**
+   * Toggle to show or hide product ratings throughout your store
+   */
+  showRatings?: boolean | null;
+  /**
+   * Allow customers to leave reviews and ratings for products
+   */
+  allowReviews?: boolean | null;
+  /**
+   * Default tax rate as a percentage (e.g., 10 for 10%)
+   */
+  taxRate?: number | null;
+  /**
+   * Minimum amount required to place an order
+   */
+  minOrderAmount?: number | null;
+  /**
+   * Configure delivery and pickup service options
+   */
+  serviceOptions?: {
+    /**
+     * Allow customers to choose delivery service
+     */
+    enableDelivery?: boolean | null;
+    /**
+     * Message shown to customers about delivery service
+     */
+    deliveryMessage?: string | null;
+    /**
+     * Estimated delivery time shown to customers
+     */
+    estimatedDeliveryTime?: string | null;
+    /**
+     * Default delivery fee for orders
+     */
+    deliveryFee?: number | null;
+    /**
+     * Minimum order amount for free delivery (0 to disable free delivery)
+     */
+    freeDeliveryThreshold?: number | null;
+    /**
+     * Allow customers to choose pickup/takeaway service
+     */
+    enablePickup?: boolean | null;
+    /**
+     * Message shown to customers about pickup service
+     */
+    pickupMessage?: string | null;
+    /**
+     * Address where customers can pickup their orders. If left empty, the store address from Contact Information will be used.
+     */
+    pickupAddress?: string | null;
+    /**
+     * Estimated pickup time shown to customers
+     */
+    estimatedPickupTime?: string | null;
+  };
+  /**
+   * Timezone for order timestamps and delivery scheduling
+   */
+  storeTimezone:
+    | 'Asia/Muscat'
+    | 'Asia/Dubai'
+    | 'Asia/Kolkata'
+    | 'Europe/London'
+    | 'America/New_York'
+    | 'America/Los_Angeles'
+    | 'Australia/Sydney';
+  /**
+   * Contact information displayed to customers
+   */
+  contactInfo?: {
+    phone?: string | null;
+    email?: string | null;
+    address?: string | null;
+    /**
+     * Link to your store location on Google Maps. Customers can click this to get directions.
+     */
+    googleMapsLink?: string | null;
+  };
+  operatingHours?: {
+    /**
+     * Store opening time (24-hour format)
+     */
+    openTime?: string | null;
+    /**
+     * Store closing time (24-hour format)
+     */
+    closeTime?: string | null;
+    /**
+     * Days when the store is closed
+     */
+    closedDays?: ('sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday')[] | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "store-config_select".
+ */
+export interface StoreConfigSelect<T extends boolean = true> {
+  storeName?: T;
+  currency?: T;
+  currencySymbol?: T;
+  currencyPosition?: T;
+  showRatings?: T;
+  allowReviews?: T;
+  taxRate?: T;
+  minOrderAmount?: T;
+  serviceOptions?:
+    | T
+    | {
+        enableDelivery?: T;
+        deliveryMessage?: T;
+        estimatedDeliveryTime?: T;
+        deliveryFee?: T;
+        freeDeliveryThreshold?: T;
+        enablePickup?: T;
+        pickupMessage?: T;
+        pickupAddress?: T;
+        estimatedPickupTime?: T;
+      };
+  storeTimezone?: T;
+  contactInfo?:
+    | T
+    | {
+        phone?: T;
+        email?: T;
+        address?: T;
+        googleMapsLink?: T;
+      };
+  operatingHours?:
+    | T
+    | {
+        openTime?: T;
+        closeTime?: T;
+        closedDays?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

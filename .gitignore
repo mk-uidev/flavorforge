@@ -1,50 +1,109 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# Dependencies
 /node_modules
 /.pnp
 .pnp.js
 .yarn/install-state.gz
+yarn.lock
+package-lock.json
 
+# IDE/Editor files
 /.idea/*
 !/.idea/runConfigurations
+.vscode/
+*.swp
+*.swo
+*~
 
-# testing
+# Testing
 /coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# local env files
-.env*.local
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-.env
-
-/media
-
-# Playwright
-node_modules/
 /test-results/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Next.js
+/.next/
+/out/
+.next
+
+# Production builds
+/build
+/dist
+*.tgz
+
+# Environment files
+.env
+.env*.local
+.env.development
+.env.production
+.env.test
+# Keep example env file
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary folders
+tmp/
+temp/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Certificates
+*.pem
+*.key
+*.cert
+*.crt
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# Media uploads (Payload CMS)
+/media
+/uploads
+
+# Cache
+.cache/
+.npm
+.eslintcache
+.parcel-cache
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Misc
+*.tgz
+*.tar.gz
+.nyc_output
+.grunt
+bower_components
+.lock-wscript
+.wafpickle-N
+.*.swp
+.DS_Store
